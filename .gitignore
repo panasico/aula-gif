@@ -1,0 +1,9 @@
+dist/
+converted/
+__pycache__/
+*.pyc
+*.aula-rgb565
+.venv/
+*.exe
+*.deb
+*.zip

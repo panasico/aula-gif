@@ -1,0 +1,61 @@
+name: Build and test
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        shell: pwsh
+        run: ./scripts/build-windows.ps1
+      - name: Test
+        shell: pwsh
+        run: ./scripts/test-windows.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          path: dist/aula-gif-*-windows.zip
+
+  ubuntu:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install test dependencies
+        run: sudo apt-get update && sudo apt-get install -y python3-pil python3-tk
+      - name: Test converter and protocol
+        run: python3 -m unittest discover -s tests -v
+      - name: Check experimental CLI without hardware
+        run: python3 linux/aula_gif.py --help
+
+  draft-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, ubuntu]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-release
+          path: release-assets
+      - name: Checksums and draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release already exists; leaving its assets and visibility unchanged."
+            exit 0
+          fi
+          cd release-assets
+          sha256sum * > SHA256SUMS.txt
+          gh release create "$GITHUB_REF_NAME" ./* --repo "$GITHUB_REPOSITORY" --draft --title "AULA GIF $GITHUB_REF_NAME" --notes-file ../docs/RELEASE.md

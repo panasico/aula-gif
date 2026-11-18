@@ -1,0 +1,4 @@
+# Optional. Grants the logged-in local user access to the two vendor HID interfaces only.
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0c45", ATTRS{idProduct}=="800a", IMPORT{builtin}="usb_id"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0c45", ATTRS{idProduct}=="800a", ENV{ID_USB_INTERFACE_NUM}=="02", TAG+="uaccess"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0c45", ATTRS{idProduct}=="800a", ENV{ID_USB_INTERFACE_NUM}=="03", TAG+="uaccess"
